@@ -1,0 +1,57 @@
+services:
+  compose-dashboard:
+    image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:13.5"
+    ports:
+      - "18888"
+    expose:
+      - "18889"
+      - "18890"
+    networks:
+      - "aspire"
+    restart: "always"
+  postgres:
+    image: "docker.io/library/postgres:18.3"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    expose:
+      - "5432"
+    volumes:
+      - type: "volume"
+        target: "/var/lib/postgresql"
+        source: "kevin.apphost-1e4dde2682-postgres-data"
+        read_only: false
+    networks:
+      - "aspire"
+  apiservice:
+    image: "${APISERVICE_IMAGE}"
+    environment:
+      OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      HTTP_PORTS: "${APISERVICE_PORT}"
+      ConnectionStrings__urlshortener: "Host=postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=urlshortener"
+      URLSHORTENER_HOST: "postgres"
+      URLSHORTENER_PORT: "5432"
+      URLSHORTENER_USERNAME: "postgres"
+      URLSHORTENER_PASSWORD: "${POSTGRES_PASSWORD}"
+      URLSHORTENER_URI: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/urlshortener"
+      URLSHORTENER_JDBCCONNECTIONSTRING: "jdbc:postgresql://postgres:5432/urlshortener"
+      URLSHORTENER_DATABASENAME: "urlshortener"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://compose-dashboard:18889"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_SERVICE_NAME: "apiservice"
+    ports:
+      - "${APISERVICE_PORT}"
+    depends_on:
+      postgres:
+        condition: "service_started"
+    networks:
+      - "aspire"
+networks:
+  aspire:
+    driver: "bridge"
+volumes:
+  kevin.apphost-1e4dde2682-postgres-data:
+    driver: "local"
