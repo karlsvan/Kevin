@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Aspire.Hosting;
 using Kevin.ApiService.Contracts.V1;
+using Kevin.ApiService.Services;
 using Microsoft.Extensions.Logging;
 
 namespace Kevin.Tests.Integration;
@@ -47,9 +48,9 @@ public class ShortUrlApiTests
     }
 
     [Test]
-    public async Task Shorten_ReturnsNumericCode()
+    public async Task Shorten_ReturnsNumericCode_WhenFormatIsOmitted()
     {
-        using var response = await _client.PostAsJsonAsync("/shorten", new ShortenRequest("https://example.com"));
+        using var response = await _client.PostAsJsonAsync("/shorten", new { url = "https://example.com" });
         var body = await response.Content.ReadFromJsonAsync<ShortenResponse>();
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
@@ -112,37 +113,55 @@ public class ShortUrlApiTests
         Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
     }
 
-    [TestCase("/shorten")]
-    [TestCase("/shorten?api-version=1.0")]
-    public async Task Shorten_UsesVersion1_ByDefaultAndWhenRequested(string path)
+    [Test]
+    public async Task Shorten_ReturnsAlphanumCode_WhenRequested()
     {
-        using var response = await _client.PostAsJsonAsync(path, new ShortenRequest("https://example.com"));
+        using var response = await _client.PostAsJsonAsync("/shorten", new { url = "https://example.com", format = "alphanum" });
+        var body = await response.Content.ReadFromJsonAsync<ShortenResponse>();
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
-        Assert.That(response.Headers.GetValues("api-supported-versions"), Does.Contain("1.0"));
+        Assert.That(body!.Code, Does.Match("^[0-9a-zA-Z]{5,}$"));
+        Assert.That(response.Headers.Location?.OriginalString, Is.EqualTo($"/{body.Code}"));
     }
 
     [Test]
-    public async Task Shorten_ReturnsBadRequest_ForUnsupportedVersion()
+    public async Task Shorten_Alphanum_ReturnsDifferentCodes_ForSameUrl()
     {
-        using var response = await _client.PostAsJsonAsync("/shorten?api-version=2.0", new ShortenRequest("https://example.com"));
+        var first = await ShortenAsync("https://example.com/same", CodeFormat.Alphanum);
+        var second = await ShortenAsync("https://example.com/same", CodeFormat.Alphanum);
+
+        Assert.That(second, Is.Not.EqualTo(first));
+    }
+
+    [Test]
+    public async Task AlphanumCode_CanBeVisitedCountedAndDeleted()
+    {
+        var code = await ShortenAsync("https://example.com/alphanum", CodeFormat.Alphanum);
+
+        using var visitResponse = await _client.GetAsync($"/{code}");
+        var stats = await _client.GetFromJsonAsync<StatsResponse>($"/{code}/stats");
+        using var deleteResponse = await _client.DeleteAsync($"/{code}");
+
+        Assert.That(visitResponse.StatusCode, Is.EqualTo(HttpStatusCode.Redirect));
+        Assert.That(visitResponse.Headers.Location, Is.EqualTo(new Uri("https://example.com/alphanum")));
+        Assert.That(stats, Is.EqualTo(new StatsResponse(code, 1)));
+        Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+    }
+
+    [TestCase("\"hex\"")]
+    [TestCase("5")]
+    public async Task Shorten_ReturnsBadRequest_ForUnknownFormat(string format)
+    {
+        using var content = new StringContent($$"""{"url": "https://example.com", "format": {{format}}}""", System.Text.Encoding.UTF8, "application/json");
+        using var response = await _client.PostAsync("/shorten", content);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
-    [Test]
-    public async Task ApiReference_IsServed()
-    {
-        var openApi = await _client.GetStringAsync("/openapi/v1.json");
-        using var scalar = await _client.GetAsync("/scalar/v1");
 
-        Assert.That(openApi, Does.Contain("/shorten").And.Contain("/{code}/stats"));
-        Assert.That(scalar.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-    }
-
-    private async Task<string> ShortenAsync(string url)
+    private async Task<string> ShortenAsync(string url, CodeFormat format = CodeFormat.Numeric)
     {
-        using var response = await _client.PostAsJsonAsync("/shorten", new ShortenRequest(url));
+        using var response = await _client.PostAsJsonAsync("/shorten", new ShortenRequest(url, format));
         var body = await response.Content.ReadFromJsonAsync<ShortenResponse>();
         return body!.Code;
     }

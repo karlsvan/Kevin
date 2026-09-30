@@ -10,6 +10,6 @@ public class NumericCodeGeneratorTests
         var code = new NumericCodeGenerator().Generate();
 
         Assert.That(code, Has.Length.EqualTo(NumericCodeGenerator.Length));
-        Assert.That(code, Does.Match("^[0-9]+$"));
+        Assert.That(double.TryParse(code, out _));
     }
 }

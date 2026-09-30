@@ -4,6 +4,11 @@ namespace Kevin.ApiService.Data;
 
 public class ShortUrlRepository(UrlDbContext db) : IShortUrlRepository
 {
+    public Task<long> NextIdAsync(CancellationToken cancellationToken = default) =>
+        db.Database
+            .SqlQueryRaw<long>($"SELECT nextval('{UrlDbContext.ShortUrlIdSequence}') AS \"Value\"")
+            .SingleAsync(cancellationToken);
+
     public Task<ShortUrl?> GetAsync(string code, CancellationToken cancellationToken = default) =>
         db.ShortUrls.AsNoTracking().FirstOrDefaultAsync(x => x.Code == code, cancellationToken);
 

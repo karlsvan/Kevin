@@ -12,7 +12,7 @@ public class ShortUrlsController(IUrlShortenerService service) : ControllerBase
     [HttpPost("shorten")]
     public async Task<ActionResult<ShortenResponse>> Shorten(ShortenRequest request, CancellationToken cancellationToken)
     {
-        var code = await service.ShortenAsync(request.Url, cancellationToken);
+        var code = await service.ShortenAsync(request.Url, request.Format, cancellationToken);
         return Created($"/{code}", new ShortenResponse(code));
     }
 

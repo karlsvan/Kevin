@@ -21,7 +21,7 @@ public class ShortUrlsControllerTests
     [Test]
     public async Task Shorten_ReturnsCreatedWithCode()
     {
-        _service.Setup(x => x.ShortenAsync("https://example.com", It.IsAny<CancellationToken>())).ReturnsAsync("12345678");
+        _service.Setup(x => x.ShortenAsync("https://example.com", CodeFormat.Numeric, It.IsAny<CancellationToken>())).ReturnsAsync("12345678");
 
         var result = await _controller.Shorten(new ShortenRequest("https://example.com"), CancellationToken.None);
 
@@ -29,6 +29,18 @@ public class ShortUrlsControllerTests
         Assert.That(created, Is.Not.Null);
         Assert.That(created!.Location, Is.EqualTo("/12345678"));
         Assert.That(created.Value, Is.EqualTo(new ShortenResponse("12345678")));
+    }
+
+    [Test]
+    public async Task Shorten_PassesRequestedFormatToService()
+    {
+        _service.Setup(x => x.ShortenAsync("https://example.com", CodeFormat.Alphanum, It.IsAny<CancellationToken>())).ReturnsAsync("aB3dE9");
+
+        var result = await _controller.Shorten(new ShortenRequest("https://example.com", CodeFormat.Alphanum), CancellationToken.None);
+
+        var created = result.Result as CreatedResult;
+        Assert.That(created!.Location, Is.EqualTo("/aB3dE9"));
+        Assert.That(created.Value, Is.EqualTo(new ShortenResponse("aB3dE9")));
     }
 
     [Test]

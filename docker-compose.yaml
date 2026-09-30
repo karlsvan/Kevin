@@ -1,6 +1,8 @@
 services:
   compose-dashboard:
     image: "mcr.microsoft.com/dotnet/nightly/aspire-dashboard:13.5"
+    environment:
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
     ports:
       - "18888:18888"
     expose:

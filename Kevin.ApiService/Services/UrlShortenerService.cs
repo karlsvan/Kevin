@@ -5,19 +5,23 @@ namespace Kevin.ApiService.Services;
 public class UrlShortenerService(
     IShortUrlRepository repository,
     ICodeGenerator codeGenerator,
+    ICodeEncoder codeEncoder,
     TimeProvider timeProvider,
     ILogger<UrlShortenerService> logger) : IUrlShortenerService
 {
-    public async Task<string> ShortenAsync(string longUrl, CancellationToken cancellationToken = default)
+    public async Task<string> ShortenAsync(string longUrl, CodeFormat format = CodeFormat.Numeric, CancellationToken cancellationToken = default)
     {
-        string code;
-        do
+        var id = await repository.NextIdAsync(cancellationToken);
+        var code = format switch
         {
-            code = codeGenerator.Generate();
-        } while (await repository.ExistsAsync(code, cancellationToken));
+            CodeFormat.Numeric => await GenerateUniqueNumericCodeAsync(cancellationToken),
+            CodeFormat.Alphanum => codeEncoder.Encode(id),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, null)
+        };
 
         await repository.AddAsync(new ShortUrl
         {
+            Id = id,
             Code = code,
             LongUrl = longUrl,
             CreatedAt = timeProvider.GetUtcNow()
@@ -55,5 +59,16 @@ public class UrlShortenerService(
             logger.LogInformation("Deleted {Code}", code);
         }
         return deleted;
+    }
+
+    private async Task<string> GenerateUniqueNumericCodeAsync(CancellationToken cancellationToken)
+    {
+        string code;
+        do
+        {
+            code = codeGenerator.Generate();
+        } while (await repository.ExistsAsync(code, cancellationToken));
+
+        return code;
     }
 }
