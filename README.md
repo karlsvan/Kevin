@@ -15,3 +15,7 @@ this should bring up the following services:
 - `alphanum`: alphanumeric code of minimum length 5
 
 
+# How to get coding
+install dotnet sdk and aspire CLI
+'aspire run' will bring everything up
+'aspire publish -o .' in the root will recreate/update Dockerfile and compose file

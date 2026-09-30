@@ -18,6 +18,7 @@ builder.AddProject<Projects.Kevin_ApiService>("apiservice")
     .WithHttpHealthCheck("/health", endpointName: "http")
     .WithUrlForEndpoint("http", _ => new() { Url = "/scalar/v1", DisplayText = "Scalar" })
     .WithExternalHttpEndpoints()
+    //this could be skipped if we could assume all developers had aspire locally
     .PublishAsDockerFile(container => container.WithDockerfile("..", "Kevin.ApiService/Dockerfile"))
     .PublishAsDockerComposeService((resource, service) =>
     {
