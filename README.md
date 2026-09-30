@@ -26,6 +26,6 @@ Anything else returns 400. If `TRUSTED_DOMAIN` is empty, only relative paths are
 
 
 # How to get coding
-install dotnet sdk and aspire CLI
-'aspire run' will bring everything up
-'aspire publish -o .' in the root will recreate/update Dockerfile and compose file
+install dotnet sdk and aspire CLI  
+'aspire run' will bring everything up  
+'aspire publish -o .' in the root will recreate/update Dockerfile and compose file  
