@@ -10,7 +10,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
 
@@ -26,6 +26,12 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
 
     - name: Build and push Docker images
       uses: docker/build-push-action@v7.4.0

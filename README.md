@@ -1,3 +1,5 @@
+![alt text](.github/image-1.png)
+
 # How to get running
 1) fill out the .env file:
    - POSTGRES_PASSWORD: just write something random. if you change it later, you'll have to delete the docker volume.
