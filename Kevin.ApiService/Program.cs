@@ -26,6 +26,7 @@ builder.Services
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ICodeGenerator, NumericCodeGenerator>();
 builder.Services.AddSingleton<ICodeEncoder, SqidsCodeEncoder>();
+builder.Services.AddSingleton<ITargetUrlValidator>(new TargetUrlValidator(builder.Configuration["TRUSTED_DOMAIN"]));
 builder.Services.AddScoped<IShortUrlRepository, ShortUrlRepository>();
 builder.Services.AddScoped<IUrlShortenerService, UrlShortenerService>();
 

@@ -148,6 +148,37 @@ public class ShortUrlApiTests
         Assert.That(deleteResponse.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
     }
 
+    [TestCase("https://evil.com")]
+    [TestCase("//evil.com")]
+    public async Task Shorten_ReturnsBadRequest_ForUntrustedUrl(string url)
+    {
+        using var response = await _client.PostAsJsonAsync("/shorten", new ShortenRequest(url));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task Visit_RedirectsToTrustedSubdomain()
+    {
+        var code = await ShortenAsync("https://www.example.com/sub");
+
+        using var response = await _client.GetAsync($"/{code}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Redirect));
+        Assert.That(response.Headers.Location, Is.EqualTo(new Uri("https://www.example.com/sub")));
+    }
+
+    [Test]
+    public async Task Visit_RedirectsToRelativePath()
+    {
+        var code = await ShortenAsync("/some/page");
+
+        using var response = await _client.GetAsync($"/{code}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Redirect));
+        Assert.That(response.Headers.Location?.OriginalString, Is.EqualTo("/some/page"));
+    }
+
     [TestCase("\"hex\"")]
     [TestCase("5")]
     public async Task Shorten_ReturnsBadRequest_ForUnknownFormat(string format)

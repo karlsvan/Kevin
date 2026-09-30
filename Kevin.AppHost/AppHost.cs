@@ -6,6 +6,7 @@ builder.AddDockerComposeEnvironment("compose")
         .WithEnvironment("ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS", "true"));
 
 var environment = builder.AddParameter("environment", "Development");
+var trustedDomain = builder.AddParameter("trusted-domain", "example.com");
 
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume();
@@ -15,6 +16,7 @@ var database = postgres.AddDatabase("urlshortener");
 builder.AddProject<Projects.Kevin_ApiService>("apiservice")
     .WithReference(database)
     .WaitFor(database)
+    .WithEnvironment("TRUSTED_DOMAIN", trustedDomain)
     .WithHttpHealthCheck("/health", endpointName: "http")
     .WithUrlForEndpoint("http", _ => new() { Url = "/scalar/v1", DisplayText = "Scalar" })
     .WithExternalHttpEndpoints()

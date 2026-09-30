@@ -1,5 +1,7 @@
 # How to get running
-1) fill out the .env file, primarily POSTGRES_PASSWORD. just write something random. if you change it later, you'll have to delete the docker volume.
+1) fill out the .env file:
+   - POSTGRES_PASSWORD: just write something random. if you change it later, you'll have to delete the docker volume.
+   - TRUSTED_DOMAIN: the allowed domain of target urls
 2) assuming you have docker installed, run the command:
 ```
 docker compose up
@@ -13,6 +15,14 @@ this should bring up the following services:
 `POST /shorten` takes an optional `format`:
 - `numeric` (default): 7 digit random code
 - `alphanum`: alphanumeric code of minimum length 5
+
+
+# Target urls
+`POST /shorten` accepts:
+- relative paths, e.g. `/some/page` (redirects stay on the host serving the short url)
+- absolute `http`/`https` urls on `TRUSTED_DOMAIN` or its subdomains
+
+Anything else returns 400. If `TRUSTED_DOMAIN` is empty, only relative paths are accepted.
 
 
 # How to get coding
